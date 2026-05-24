@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Past Participle Speaking Practice</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #faf5ff, #efe4ff);
+      color: #5b3c78;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: min(720px, 100%);
+      min-height: 520px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid rgba(210, 185, 255, 0.7);
+      border-radius: 30px;
+      padding: 34px 24px;
+      box-shadow: 0 18px 45px rgba(112, 78, 150, 0.16);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(32px, 6vw, 48px);
+      color: #7449a8;
+    }
+
+    .subtitle {
+      margin: 0 auto 28px;
+      max-width: 520px;
+      font-size: 19px;
+      line-height: 1.45;
+      color: #7b6294;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .progress {
+      margin-bottom: 24px;
+      font-size: 17px;
+      font-weight: bold;
+      color: #8a63b4;
+    }
+
+    .shape {
+      width: min(420px, 100%);
+      min-height: 92px;
+      margin: 0 auto;
+      padding: 18px 22px;
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(36px, 8vw, 56px);
+      font-weight: bold;
+      color: #603687;
+      background: #f0e2ff;
+      border: 2px solid #d9c0ff;
+    }
+
+    .answer-shape {
+      background: #fffaff;
+      color: #6b3f91;
+    }
+
+    .answer-shape.empty::after {
+      content: "";
+      width: 74px;
+      height: 8px;
+      border-radius: 999px;
+      background: #e5d4f8;
+      display: block;
+    }
+
+    .arrow {
+      margin: 14px 0;
+      font-size: 42px;
+      color: #a57bce;
+      line-height: 1;
+    }
+
+    .message {
+      min-height: 34px;
+      margin: 24px 0 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #7b4ba7;
+    }
+
+    .message.good {
+      color: #5a9a6c;
+    }
+
+    .message.answer {
+      color: #7b4ba7;
+    }
+
+    .message.waiting {
+      color: #8a6ca4;
+    }
+
+    button {
+      border: none;
+      border-radius: 20px;
+      padding: 15px 28px;
+      font-family: inherit;
+      font-size: 19px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(109, 77, 145, 0.16);
+    }
+
+    .main-btn {
+      background: #9a6dde;
+      color: white;
+    }
+
+    .skip-btn {
+      background: #eee0ff;
+      color: #6a4292;
+    }
+
+    .end-title {
+      margin: 0 0 16px;
+      font-size: clamp(36px, 7vw, 56px);
+      color: #7449a8;
+    }
+
+    .end-text {
+      margin: 0 auto 28px;
+      max-width: 520px;
+      font-size: 23px;
+      line-height: 1.45;
+      color: #7b6294;
+    }
+
+    .tiny-note {
+      margin: 18px 0 0;
+      font-size: 15px;
+      color: #9a80b0;
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        min-height: 500px;
+        padding: 28px 18px;
+      }
+
+      .shape {
+        min-height: 82px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="screen active" id="startScreen">
+      <h1>Past Participle</h1>
+      <p class="subtitle">Look at the base form and say the past participle. The game will listen automatically after you start.</p>
+      <button class="main-btn" id="startBtn">Start Practice</button>
+      <p class="tiny-note">The browser may ask for microphone permission.</p>
+    </section>
+
+    <section class="screen" id="gameScreen">
+      <div class="progress" id="progress">Word 1 of 20</div>
+
+      <div class="shape" id="baseWord">see</div>
+      <div class="arrow">↓</div>
+      <div class="shape answer-shape empty" id="answerBox"></div>
+
+      <div class="message waiting" id="message">Listening...</div>
+
+      <button class="skip-btn" id="skipBtn">Skip</button>
+    </section>
+
+    <section class="screen" id="endScreen">
+      <h2 class="end-title">Practice Complete ✨</h2>
+      <p class="end-text">Beautiful work. You’ve finished your past participle practice.</p>
+      <button class="main-btn" id="restartBtn">Practise Again</button>
+    </section>
+  </main>
+
+  <script>
+    const words = [
+      { base: "see", answer: "seen", speak: "seen", accepted: ["seen", "scene"] },
+      { base: "read", answer: "read", speak: "red", accepted: ["read", "red"] },
+      { base: "wash", answer: "washed", speak: "washed", accepted: ["washed", "wash"] },
+      { base: "do", answer: "done", speak: "done", accepted: ["done", "dun"] },
+      { base: "be", answer: "been", speak: "been", accepted: ["been", "bean", "bin"] },
+      { base: "eat", answer: "eaten", speak: "eaten", accepted: ["eaten", "eating"] },
+      { base: "meet", answer: "met", speak: "met", accepted: ["met"] },
+      { base: "forget", answer: "forgotten", speak: "forgotten", accepted: ["forgotten", "forgoten"] },
+      { base: "wear", answer: "worn", speak: "worn", accepted: ["worn", "warn"] },
+      { base: "speak", answer: "spoken", speak: "spoken", accepted: ["spoken"] },
+      { base: "work", answer: "worked", speak: "worked", accepted: ["worked", "work"] },
+      { base: "leave", answer: "left", speak: "left", accepted: ["left"] },
+      { base: "take", answer: "taken", speak: "taken", accepted: ["taken"] },
+      { base: "call", answer: "called", speak: "called", accepted: ["called", "cold"] },
+      { base: "win", answer: "won", speak: "won", accepted: ["won", "one"] },
+      { base: "break", answer: "broken", speak: "broken", accepted: ["broken"] },
+      { base: "go", answer: "gone", speak: "gone", accepted: ["gone", "gun"] },
+      { base: "fall", answer: "fallen", speak: "fallen", accepted: ["fallen"] },
+      { base: "buy", answer: "bought", speak: "bought", accepted: ["bought", "bot"] },
+      { base: "sing", answer: "sung", speak: "sung", accepted: ["sung", "song"] }
+    ];
+
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const endScreen = document.getElementById("endScreen");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const progress = document.getElementById("progress");
+    const baseWord = document.getElementById("baseWord");
+    const answerBox = document.getElementById("answerBox");
+    const message = document.getElementById("message");
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let currentIndex = 0;
+    let shouldListen = false;
+    let isListening = false;
+    let acceptingAnswer = false;
+    let isMoving = false;
+
+    function showScreen(screen) {
+      [startScreen, gameScreen, endScreen].forEach(item => item.classList.remove("active"));
+      screen.classList.add("active");
+    }
+
+    function normalize(text) {
+      return text
+        .toLowerCase()
+        .trim()
+        .replace(/[’']/g, "")
+        .replace(/[^a-z ]/g, "")
+        .split(" ")
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    function transcriptMatches(transcript, acceptedList) {
+      const cleanTranscript = normalize(transcript);
+      const wordsInTranscript = cleanTranscript.split(" ");
+
+      return acceptedList.some(item => {
+        const cleanItem = normalize(item);
+        return cleanTranscript === cleanItem || wordsInTranscript.includes(cleanItem);
+      });
+    }
+
+    function speakText(text) {
+      if (!window.speechSynthesis) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      utterance.rate = 0.9;
+
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(voice => voice.lang && voice.lang.toLowerCase().startsWith("en"));
+      if (englishVoice) utterance.voice = englishVoice;
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function setupRecognition() {
+      if (!SpeechRecognition) {
+        message.textContent = "Speech recognition is not supported in this browser.";
+        skipBtn.textContent = "Show answer";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 3;
+
+      recognition.onstart = () => {
+        isListening = true;
+        if (acceptingAnswer) {
+          message.textContent = "Listening...";
+          message.className = "message waiting";
+        }
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        if (shouldListen && !isMoving && gameScreen.classList.contains("active")) {
+          setTimeout(startListening, 250);
+        }
+      };
+
+      recognition.onerror = () => {
+        if (acceptingAnswer) {
+          message.textContent = "Listening...";
+          message.className = "message waiting";
+        }
+      };
+
+      recognition.onresult = event => {
+        if (!acceptingAnswer || isMoving) return;
+
+        const current = words[currentIndex];
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (!result.isFinal) continue;
+
+          for (let j = 0; j < result.length; j++) {
+            const transcript = result[j].transcript;
+            if (transcriptMatches(transcript, current.accepted)) {
+              handleCorrectAnswer();
+              return;
+            }
+          }
+        }
+      };
+    }
+
+    function startListening() {
+      if (!recognition || isListening) return;
+      shouldListen = true;
+
+      try {
+        recognition.start();
+      } catch (error) {
+        // Some browsers throw an error if recognition is already starting.
+      }
+    }
+
+    function stopListening() {
+      shouldListen = false;
+      if (recognition && isListening) {
+        try {
+          recognition.stop();
+        } catch (error) {}
+      }
+    }
+
+    function startPractice() {
+      if (!recognition) setupRecognition();
+      currentIndex = 0;
+      showScreen(gameScreen);
+      loadWord();
+    }
+
+    function loadWord() {
+      if (currentIndex >= words.length) {
+        finishPractice();
+        return;
+      }
+
+      const current = words[currentIndex];
+      isMoving = false;
+      acceptingAnswer = true;
+
+      progress.textContent = `Word ${currentIndex + 1} of ${words.length}`;
+      baseWord.textContent = current.base;
+      answerBox.textContent = "";
+      answerBox.classList.add("empty");
+      message.textContent = "Listening...";
+      message.className = "message waiting";
+
+      startListening();
+    }
+
+    function handleCorrectAnswer() {
+      if (isMoving) return;
+
+      const current = words[currentIndex];
+      isMoving = true;
+      acceptingAnswer = false;
+      answerBox.textContent = current.answer;
+      answerBox.classList.remove("empty");
+      message.textContent = "Correct!";
+      message.className = "message good";
+      speakText(current.speak || current.answer);
+
+      setTimeout(nextWord, 1300);
+    }
+
+    function skipWord() {
+      if (isMoving) return;
+
+      const current = words[currentIndex];
+      isMoving = true;
+      acceptingAnswer = false;
+      answerBox.textContent = current.answer;
+      answerBox.classList.remove("empty");
+      message.textContent = "Answer";
+      message.className = "message answer";
+      speakText(current.speak || current.answer);
+
+      setTimeout(nextWord, 1800);
+    }
+
+    function nextWord() {
+      currentIndex++;
+      loadWord();
+    }
+
+    function finishPractice() {
+      acceptingAnswer = false;
+      isMoving = false;
+      stopListening();
+      showScreen(endScreen);
+    }
+
+    startBtn.addEventListener("click", startPractice);
+    restartBtn.addEventListener("click", startPractice);
+    skipBtn.addEventListener("click", skipWord);
+
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+  </script>
+</body>
+</html>
