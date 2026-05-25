@@ -161,6 +161,57 @@
       color: #7b6294;
     }
 
+    .name-box {
+      width: min(420px, 100%);
+      margin: 0 auto 18px;
+      text-align: left;
+    }
+
+    .name-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 17px;
+      font-weight: bold;
+      color: #7449a8;
+    }
+
+    .name-input {
+      width: 100%;
+      border: 2px solid #d9c0ff;
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-family: inherit;
+      font-size: 20px;
+      color: #5b3c78;
+      background: #fffaff;
+      outline: none;
+    }
+
+    .name-input:focus {
+      border-color: #9a6dde;
+      box-shadow: 0 0 0 4px rgba(154, 109, 222, 0.13);
+    }
+
+    .name-error {
+      min-height: 24px;
+      margin: -6px 0 14px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #b35f86;
+    }
+
+    .student-badge {
+      width: fit-content;
+      max-width: 100%;
+      margin: -10px auto 18px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #f5ecff;
+      color: #7449a8;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
     .tiny-note {
       margin: 18px 0 0;
       font-size: 15px;
@@ -184,12 +235,26 @@
     <section class="screen active" id="startScreen">
       <h1>Past Participle</h1>
       <p class="subtitle">Look at the base form and say the past participle. The game will listen automatically after you start.</p>
+
+      <div class="name-box">
+        <label class="name-label" for="studentNameInput">What’s your name?</label>
+        <input
+          class="name-input"
+          id="studentNameInput"
+          type="text"
+          autocomplete="name"
+          placeholder="Type your name"
+        />
+      </div>
+      <p class="name-error" id="nameError"></p>
+
       <button class="main-btn" id="startBtn">Start Practice</button>
       <p class="tiny-note">The browser may ask for microphone permission.</p>
     </section>
 
     <section class="screen" id="gameScreen">
       <div class="progress" id="progress">Word 1 of 20</div>
+      <div class="student-badge" id="studentBadge">Student: —</div>
 
       <div class="shape" id="baseWord">see</div>
       <div class="arrow">↓</div>
@@ -202,7 +267,7 @@
 
     <section class="screen" id="endScreen">
       <h2 class="end-title">Practice Complete ✨</h2>
-      <p class="end-text">Beautiful work. You’ve finished your past participle practice.</p>
+      <p class="end-text" id="endText">Beautiful work. You’ve finished your past participle practice.</p>
       <button class="main-btn" id="restartBtn">Practise Again</button>
     </section>
   </main>
@@ -237,10 +302,17 @@
     const startBtn = document.getElementById("startBtn");
     const restartBtn = document.getElementById("restartBtn");
     const skipBtn = document.getElementById("skipBtn");
+    const studentNameInput = document.getElementById("studentNameInput");
+    const nameError = document.getElementById("nameError");
+    const studentBadge = document.getElementById("studentBadge");
+    const endText = document.getElementById("endText");
     const progress = document.getElementById("progress");
     const baseWord = document.getElementById("baseWord");
     const answerBox = document.getElementById("answerBox");
     const message = document.getElementById("message");
+
+    const TRACKING_URL = "https://script.google.com/macros/s/AKfycbze5szpz0ury7t9AzXgypraI0bqWnb_beGCryE4gfIZTJ8y7giHTQP54U3Mqy6PtOh-Cg/exec";
+    const GAME_NAME = "Past Participle Speaking Practice";
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
@@ -249,10 +321,45 @@
     let isListening = false;
     let acceptingAnswer = false;
     let isMoving = false;
+    let currentStudentName = "";
+    let correctCount = 0;
+    let skippedCount = 0;
 
     function showScreen(screen) {
       [startScreen, gameScreen, endScreen].forEach(item => item.classList.remove("active"));
       screen.classList.add("active");
+    }
+
+    function getStudentName() {
+      const name = studentNameInput.value.trim();
+
+      if (!name) {
+        nameError.textContent = "Type your name first 💜";
+        studentNameInput.focus();
+        return null;
+      }
+
+      nameError.textContent = "";
+      return name;
+    }
+
+    function logProgress(page) {
+      const data = new URLSearchParams();
+      data.append("name", currentStudentName || "No name");
+      data.append("game", GAME_NAME);
+      data.append("page", page);
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(TRACKING_URL, data);
+        return;
+      }
+
+      fetch(TRACKING_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: data,
+        keepalive: true
+      }).catch(() => {});
     }
 
     function normalize(text) {
@@ -366,9 +473,24 @@
       }
     }
 
-    function startPractice() {
+    function startPractice(isRestart = false) {
+      if (!isRestart) {
+        const name = getStudentName();
+        if (!name) return;
+        currentStudentName = name;
+      }
+
+      if (!currentStudentName) {
+        showScreen(startScreen);
+        return;
+      }
+
       if (!recognition) setupRecognition();
       currentIndex = 0;
+      correctCount = 0;
+      skippedCount = 0;
+      studentBadge.textContent = `Student: ${currentStudentName}`;
+      logProgress(isRestart ? "Game restarted" : "Game started");
       showScreen(gameScreen);
       loadWord();
     }
@@ -399,6 +521,7 @@
       const current = words[currentIndex];
       isMoving = true;
       acceptingAnswer = false;
+      correctCount++;
       answerBox.textContent = current.answer;
       answerBox.classList.remove("empty");
       message.textContent = "Correct!";
@@ -414,6 +537,7 @@
       const current = words[currentIndex];
       isMoving = true;
       acceptingAnswer = false;
+      skippedCount++;
       answerBox.textContent = current.answer;
       answerBox.classList.remove("empty");
       message.textContent = "Answer";
@@ -432,12 +556,17 @@
       acceptingAnswer = false;
       isMoving = false;
       stopListening();
+      endText.textContent = `Beautiful work. Finished: ${correctCount} correct, ${skippedCount} skipped.`;
+      logProgress(`Game finished: ${correctCount} correct, ${skippedCount} skipped, ${words.length} total`);
       showScreen(endScreen);
     }
 
-    startBtn.addEventListener("click", startPractice);
-    restartBtn.addEventListener("click", startPractice);
+    startBtn.addEventListener("click", () => startPractice(false));
+    restartBtn.addEventListener("click", () => startPractice(true));
     skipBtn.addEventListener("click", skipWord);
+    studentNameInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") startPractice(false);
+    });
 
     if (window.speechSynthesis) {
       window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
