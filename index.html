@@ -344,22 +344,20 @@
     }
 
     function logProgress(page) {
+      if (!currentStudentName) return;
+
       const data = new URLSearchParams();
-      data.append("name", currentStudentName || "No name");
+      data.append("name", currentStudentName);
       data.append("game", GAME_NAME);
       data.append("page", page);
-
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(TRACKING_URL, data);
-        return;
-      }
 
       fetch(TRACKING_URL, {
         method: "POST",
         mode: "no-cors",
-        body: data,
-        keepalive: true
-      }).catch(() => {});
+        body: data
+      }).catch(() => {
+        // The game should keep working even if the visit log does not send.
+      });
     }
 
     function normalize(text) {
